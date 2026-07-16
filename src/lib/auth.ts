@@ -5,6 +5,34 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+// Google's token response sometimes includes extra fields (e.g. refresh_token_expires_in)
+// that don't exist as columns on our `accounts` table. The default Prisma adapter passes
+// whatever the provider returns straight into `prisma.account.create()`, so any such extra
+// field makes that insert throw ("Unknown argument ..."), which aborts the whole sign-in
+// with a generic Callback error. We wrap linkAccount to strip anything Prisma doesn't
+// recognize before saving — a well-known gotcha with next-auth + Google + Prisma.
+const ACCOUNT_FIELDS = new Set([
+  "userId",
+  "type",
+  "provider",
+  "providerAccountId",
+  "refresh_token",
+  "access_token",
+  "expires_at",
+  "token_type",
+  "scope",
+  "id_token",
+  "session_state",
+]);
+
+function sanitizeAccount(account: Record<string, unknown>) {
+  const clean: Record<string, unknown> = {};
+  for (const key of Object.keys(account)) {
+    if (ACCOUNT_FIELDS.has(key)) clean[key] = account[key];
+  }
+  return clean;
+}
+
 // Google is only added as a provider once GOOGLE_CLIENT_ID/SECRET are actually set.
 // This keeps the app working exactly as before if you haven't set up Google Cloud
 // credentials yet — no crash, "Connect Google Calendar" just won't be offered.
@@ -31,8 +59,13 @@ const googleProvider =
       ]
     : [];
 
+const baseAdapter = PrismaAdapter(prisma);
+
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma) as AuthOptions["adapter"],
+  adapter: {
+    ...baseAdapter,
+    linkAccount: (account) => baseAdapter.linkAccount!(sanitizeAccount(account) as never),
+  } as AuthOptions["adapter"],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
