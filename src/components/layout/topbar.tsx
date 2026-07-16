@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Search, LogOut, Settings } from "lucide-react";
+import { Search, LogOut, Settings, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -52,8 +52,11 @@ export function Topbar() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{session?.user?.name}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => (window.location.href = "/account")}>
+              <UserCircle className="mr-2 h-4 w-4" /> My Account
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => (window.location.href = "/settings")}>
-              <Settings className="mr-2 h-4 w-4" /> Settings
+              <Settings className="mr-2 h-4 w-4" /> Company Settings
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/login" })}>
               <LogOut className="mr-2 h-4 w-4" /> Sign out

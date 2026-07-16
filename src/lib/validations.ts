@@ -56,3 +56,28 @@ export const wikiPageCreateSchema = z.object({
 export const wikiPageUpdateSchema = wikiPageCreateSchema.partial().extend({
   isPinned: z.boolean().optional(),
 });
+
+// ---------- Account / profile ----------
+
+const optionalEmail = z
+  .string()
+  .refine((v) => v === "" || z.string().email().safeParse(v).success, {
+    message: "Enter a valid email address",
+  })
+  .optional()
+  .nullable();
+
+export const accountUpdateSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100).optional(),
+  email: z.string().email("Enter a valid email address").optional(),
+  phone: z.string().max(30, "Phone number looks too long").optional().nullable(),
+  backupEmail: optionalEmail,
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z
+    .string()
+    .min(8, "New password must be at least 8 characters long")
+    .max(200),
+});
